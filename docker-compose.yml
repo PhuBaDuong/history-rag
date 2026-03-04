@@ -1,0 +1,17 @@
+services:
+  neo4j:
+    image: neo4j:latest
+    container_name: dev-neo4j
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+      - ./config:/config
+      - ./plugins:/plugins
+    environment:
+      # Replace 'your_password' with a strong password
+      NEO4J_AUTH: neo4j/StrongP@ssword!
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    restart: always
+

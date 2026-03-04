@@ -1,0 +1,8 @@
+# python
+__pycache__/
+retrieval_qa/__pycache__/
+# env
+.env
+.env.example
+# logs
+logs/
