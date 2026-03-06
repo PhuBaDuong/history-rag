@@ -1,0 +1,30 @@
+# RAG System Dependencies
+# Run: pip install -r requirements.txt
+
+# Database & Graph
+neo4j==5.14.0              # Neo4j Python driver for graph database
+
+# HTTP & API
+requests==2.31.0           # HTTP library for API calls
+
+# Configuration Management
+python-dotenv==1.0.0       # Load environment variables from .env files
+
+# Built-in modules (no install needed)
+# logging                    # Python built-in logging module
+# time                       # Python built-in for delays/retries
+# os                         # Python built-in for OS operations
+
+# Optional: Production & Development
+# Uncomment as needed for your environment
+
+# Testing
+# pytest==7.4.0            # Testing framework
+# pytest-cov==4.1.0        # Coverage plugin for pytest
+
+# Advanced Logging (alternative to built-in logging)
+# loguru==0.7.2             # More feature-rich logging library
+
+# API Server (if deploying as service)
+# fastapi==0.104.0          # Modern API framework
+# uvicorn==0.24.0           # ASGI server
