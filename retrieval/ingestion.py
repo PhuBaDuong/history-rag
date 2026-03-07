@@ -1,17 +1,13 @@
-from neo4j import GraphDatabase
 from neo4j.exceptions import Neo4jError
+from typing import List, Any
 from embedder import embed_text
-from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, CHUNK_SIZE, CHUNK_OVERLAP
+from config import NEO4J_URI, CHUNK_SIZE, CHUNK_OVERLAP, VECTOR_INDEX_NAME
 from logger_config import get_logger
+from retrieval.database import get_driver, create_vector_index
 
 logger = get_logger("ingestion")
 
-driver = GraphDatabase.driver(
-    NEO4J_URI,
-    auth=(NEO4J_USER, NEO4J_PASSWORD)
-)
-
-def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
+def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> List[str]:
     """Split text into overlapping chunks"""
     if not text:
         logger.warning("Empty text provided for chunking")
@@ -24,7 +20,7 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     logger.info(f"Created {len(chunks)} chunks from text ({len(text)} characters)")
     return chunks
 
-def store_chunk(tx, chunk_id, text, embedding):
+def store_chunk(tx: Any, chunk_id: int, text: str, embedding: List[float]) -> None:
     """Store a single chunk in Neo4j"""
     tx.run("""
         CREATE (c:Chunk {
@@ -34,8 +30,10 @@ def store_chunk(tx, chunk_id, text, embedding):
         })
     """, id=chunk_id, text=text, embedding=embedding)
 
-def ingest_book(book_text):
+def ingest_book(book_text: str) -> None:
     """Ingest book text into vector database with error handling"""
+    driver = get_driver()  # Get shared driver instance
+    
     try:
         # Verify connection
         logger.info(f"Connecting to Neo4j at {NEO4J_URI}")
@@ -56,6 +54,13 @@ def ingest_book(book_text):
         if not chunks:
             logger.error("No chunks created from text")
             return
+        
+        # Create vector index (if it doesn't exist)
+        logger.info(f"Ensuring vector index exists: {VECTOR_INDEX_NAME}")
+        if not create_vector_index(VECTOR_INDEX_NAME):
+            logger.error(f"Failed to create vector index: {VECTOR_INDEX_NAME}")
+            raise Exception(f"Cannot create vector index: {VECTOR_INDEX_NAME}")
+        logger.info(f"✅ Vector index ready: {VECTOR_INDEX_NAME}")
         
         # Ingest chunks
         logger.info("Starting document ingestion...")
@@ -78,7 +83,3 @@ def ingest_book(book_text):
     except Exception as e:
         logger.error(f"Ingestion failed: {str(e)}")
         raise
-    finally:
-        # Always close the driver
-        driver.close()
-        logger.debug("Database driver closed")

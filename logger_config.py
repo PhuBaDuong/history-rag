@@ -5,6 +5,7 @@ Sets up structured logging with file and console output
 
 import logging
 import os
+from typing import Any
 from config import LOG_LEVEL, LOG_FILE, DEBUG_MODE
 
 # Create logs directory if it doesn't exist
@@ -34,6 +35,6 @@ file_handler.setFormatter(file_formatter)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
-def get_logger(name):
+def get_logger(name: str) -> logging.Logger:
     """Get a logger instance for a specific module"""
     return logging.getLogger(f"rag_system.{name}")

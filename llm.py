@@ -1,5 +1,6 @@
 import requests
-from config import OLLAMA_BASE_URL, OLLAMA_LLM_MODEL, OLLAMA_TEMPERATURE
+import time
+from config import OLLAMA_BASE_URL, OLLAMA_LLM_MODEL, OLLAMA_TEMPERATURE, LLM_TIMEOUT, RETRY_DELAY
 from logger_config import get_logger
 
 logger = get_logger("llm")
@@ -8,7 +9,7 @@ MODEL_NAME = OLLAMA_LLM_MODEL
 
 MAX_RETRIES = 2
 
-def generate_answer(context: str, question: str):
+def generate_answer(context: str, question: str) -> str:
     """Generate answer using LLM with error handling"""
     if not context or not context.strip():
         logger.warning("No context provided for answer generation")
@@ -44,7 +45,7 @@ def generate_answer(context: str, question: str):
                     "stream": False,
                     "temperature": OLLAMA_TEMPERATURE
                 },
-                timeout=200
+                timeout=LLM_TIMEOUT
             )
             response.raise_for_status()
             answer = response.json()["response"]
@@ -54,8 +55,7 @@ def generate_answer(context: str, question: str):
         except requests.exceptions.Timeout:
             logger.warning(f"LLM request timeout (attempt {attempt + 1}/{MAX_RETRIES})")
             if attempt < MAX_RETRIES - 1:
-                import time
-                time.sleep(2)
+                time.sleep(RETRY_DELAY)
             else:
                 logger.error("Answer generation failed: Service timeout")
                 return "Unable to generate answer - service timeout. Please try again."

@@ -1,18 +1,16 @@
-from neo4j import GraphDatabase
 from neo4j.exceptions import Neo4jError
+from typing import List, Tuple
 from embedder import embed_text
-from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, VECTOR_INDEX_NAME, SEARCH_TOP_K
+from config import VECTOR_INDEX_NAME, SEARCH_TOP_K, DATABASE_TIMEOUT
 from logger_config import get_logger
+from retrieval.database import get_driver
 
 logger = get_logger("vector_search")
 
-driver = GraphDatabase.driver(
-    NEO4J_URI,
-    auth=(NEO4J_USER, NEO4J_PASSWORD)
-)
-
-def retrieve(question: str, top_k=SEARCH_TOP_K):
+def retrieve(question: str, top_k: int = SEARCH_TOP_K) -> List[Tuple[str, float]]:
     """Retrieve relevant chunks using vector search with error handling"""
+    driver = get_driver()  # Get shared driver instance
+    
     if not question or not question.strip():
         logger.warning("Empty question provided for retrieval")
         return []

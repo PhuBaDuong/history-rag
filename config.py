@@ -48,3 +48,17 @@ LOG_FILE = os.getenv("LOG_FILE", "logs/rag_system.log")
 # ============================================
 SKIP_INGESTION = os.getenv("SKIP_INGESTION", "false").lower() == "true"
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
+
+# ============================================
+# NETWORK REQUEST CONFIGURATION
+# ============================================
+EMBEDDING_TIMEOUT = int(os.getenv("EMBEDDING_TIMEOUT", "30"))      # Embedding API timeout (seconds)
+LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "120"))                 # LLM API timeout (seconds)
+DATABASE_TIMEOUT = int(os.getenv("DATABASE_TIMEOUT", "30"))        # Database query timeout (seconds)
+RETRY_DELAY = int(os.getenv("RETRY_DELAY", "1"))                   # Delay between retries (seconds)
+
+# ============================================
+# INPUT VALIDATION CONFIGURATION
+# ============================================
+MAX_QUESTION_LENGTH = int(os.getenv("MAX_QUESTION_LENGTH", "1000"))  # Max characters
+MIN_QUESTION_LENGTH = int(os.getenv("MIN_QUESTION_LENGTH", "3"))     # Min characters

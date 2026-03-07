@@ -1,14 +1,51 @@
 from retrieval.ingestion import ingest_book
 from retrieval.vector_search import retrieve
 from llm import generate_answer
-from config import DOCUMENT_PATH, SKIP_INGESTION
+from config import DOCUMENT_PATH, SKIP_INGESTION, MAX_QUESTION_LENGTH, MIN_QUESTION_LENGTH
 from logger_config import get_logger
+from typing import Tuple
 
 logger = get_logger("main")
 
-def rag_pipeline(question: str):
-    """Run RAG pipeline with error handling"""
+def validate_question(question: str) -> Tuple[bool, str]:
+    """Validate user input question
+    
+    Returns:
+        Tuple: (is_valid, error_message)
+    """
+    # Check if question is a string
+    if not isinstance(question, str):
+        return False, "Question must be text"
+    
+    # Check if question is empty or just whitespace
+    if not question or not question.strip():
+        return False, "Question cannot be empty. Please ask a valid question."
+    
+    # Check minimum length
+    question_len = len(question.strip())
+    if question_len < MIN_QUESTION_LENGTH:
+        return False, f"Question must be at least {MIN_QUESTION_LENGTH} characters long."
+    
+    # Check maximum length
+    if question_len > MAX_QUESTION_LENGTH:
+        return False, f"Question must be less than {MAX_QUESTION_LENGTH} characters long (you provided {question_len})."
+    
+    # Check if question contains only valid characters (basic check)
+    # Allow alphanumeric, spaces, and common punctuation
+    if not all(c.isalnum() or c.isspace() or c in "?!.,;:'-()\"" for c in question):
+        return False, "Question contains invalid characters. Please use standard text and punctuation."
+    
+    return True, ""
+
+def rag_pipeline(question: str) -> str:
+    """Run RAG pipeline with input validation and error handling"""
     try:
+        # Validate input
+        is_valid, error_msg = validate_question(question)
+        if not is_valid:
+            logger.warning(f"Invalid question: {error_msg}")
+            return error_msg
+        
         # 1️⃣ Retrieve relevant chunks
         logger.debug(f"Retrieving chunks for question: {question}")
         results = retrieve(question)

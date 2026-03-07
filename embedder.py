@@ -1,5 +1,6 @@
 import requests
-from config import OLLAMA_BASE_URL, OLLAMA_EMBEDDING_MODEL
+from typing import List
+from config import OLLAMA_BASE_URL, OLLAMA_EMBEDDING_MODEL, EMBEDDING_TIMEOUT, RETRY_DELAY
 from logger_config import get_logger
 
 logger = get_logger("embedder")
@@ -7,9 +8,8 @@ OLLAMA_URL = f"{OLLAMA_BASE_URL}/api/embeddings"
 MODEL_NAME = OLLAMA_EMBEDDING_MODEL
 
 MAX_RETRIES = 3
-RETRY_DELAY = 1  # seconds
 
-def embed_text(text: str):
+def embed_text(text: str) -> List[float]:
     """Generate embeddings for text with error handling and retry logic"""
     if not text or not text.strip():
         logger.warning("Empty text provided for embedding")
@@ -24,7 +24,7 @@ def embed_text(text: str):
                     "model": MODEL_NAME,
                     "prompt": text
                 },
-                timeout=30
+                timeout=EMBEDDING_TIMEOUT
             )
             response.raise_for_status()
             embedding = response.json()["embedding"]
