@@ -1,79 +1,25 @@
-from retrieval.ingestion import ingest_book
-from retrieval.vector_search import retrieve
-from llm import generate_answer
-from config import DOCUMENT_PATH, SKIP_INGESTION, MAX_QUESTION_LENGTH, MIN_QUESTION_LENGTH
-from logger_config import get_logger
-from typing import Tuple
+#!/usr/bin/env python3
+"""
+RAG System CLI Interface
+Main entry point for the Retrieval-Augmented Generation system
+"""
+
+import sys
+import os
+
+# Add src to Python path to enable imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from src.retrieval.ingestion import ingest_book
+from src.core.pipeline import rag_pipeline
+from src.config import DOCUMENT_PATH, SKIP_INGESTION
+from src.logger_config import get_logger
 
 logger = get_logger("main")
 
-def validate_question(question: str) -> Tuple[bool, str]:
-    """Validate user input question
-    
-    Returns:
-        Tuple: (is_valid, error_message)
-    """
-    # Check if question is a string
-    if not isinstance(question, str):
-        return False, "Question must be text"
-    
-    # Check if question is empty or just whitespace
-    if not question or not question.strip():
-        return False, "Question cannot be empty. Please ask a valid question."
-    
-    # Check minimum length
-    question_len = len(question.strip())
-    if question_len < MIN_QUESTION_LENGTH:
-        return False, f"Question must be at least {MIN_QUESTION_LENGTH} characters long."
-    
-    # Check maximum length
-    if question_len > MAX_QUESTION_LENGTH:
-        return False, f"Question must be less than {MAX_QUESTION_LENGTH} characters long (you provided {question_len})."
-    
-    # Check if question contains only valid characters (basic check)
-    # Allow alphanumeric, spaces, and common punctuation
-    if not all(c.isalnum() or c.isspace() or c in "?!.,;:'-()\"" for c in question):
-        return False, "Question contains invalid characters. Please use standard text and punctuation."
-    
-    return True, ""
 
-def rag_pipeline(question: str) -> str:
-    """Run RAG pipeline with input validation and error handling"""
-    try:
-        # Validate input
-        is_valid, error_msg = validate_question(question)
-        if not is_valid:
-            logger.warning(f"Invalid question: {error_msg}")
-            return error_msg
-        
-        # 1️⃣ Retrieve relevant chunks
-        logger.debug(f"Retrieving chunks for question: {question}")
-        results = retrieve(question)
-        
-        if not results:
-            logger.warning(f"No results found for question: {question}")
-            return "No relevant information found in the knowledge base."
-
-        # 2️⃣ Combine context
-        context = "\n\n".join(
-            [f"[Source {i+1} | score={score:.3f}]\n{text}"
-             for i, (text, score) in enumerate(results)]
-        )
-
-        logger.debug(f"Retrieved {len(results)} chunks, generating answer...")
-        print(context)
-
-        # 3️⃣ Generate answer
-        answer = generate_answer(context, question)
-        logger.info(f"Answer generated successfully")
-        return answer
-        
-    except Exception as e:
-        logger.error(f"Error in RAG pipeline: {str(e)}")
-        return f"Error processing question: {str(e)}"
-
-
-if __name__ == "__main__":
+def main():
+    """Main entry point for RAG system."""
     logger.info("🚀 Starting RAG System")
     print("📚 Local History RAG System")
     print("Type 'exit' to quit.\n")
@@ -138,3 +84,7 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"Unexpected error in main loop: {str(e)}")
             print(f"\n❌ Error: {str(e)}\n")
+
+
+if __name__ == "__main__":
+    main()
