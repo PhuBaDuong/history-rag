@@ -6,7 +6,7 @@ Sets up structured logging with file and console output
 import logging
 import os
 from typing import Any
-from config import LOG_LEVEL, LOG_FILE, DEBUG_MODE
+from src.config import LOG_LEVEL, LOG_FILE, DEBUG_MODE
 
 # Create logs directory if it doesn't exist
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)

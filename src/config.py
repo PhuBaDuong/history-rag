@@ -4,10 +4,11 @@ Loads settings from environment variables with sensible defaults
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 
 # ============================================
 # NEO4J DATABASE CONFIGURATION

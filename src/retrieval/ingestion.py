@@ -1,9 +1,11 @@
+"""Document ingestion into vector database."""
+
 from neo4j.exceptions import Neo4jError
 from typing import List, Any
-from embedder import embed_text
-from config import NEO4J_URI, CHUNK_SIZE, CHUNK_OVERLAP, VECTOR_INDEX_NAME
-from logger_config import get_logger
-from retrieval.database import get_driver, create_vector_index
+from src.embedding.ollama import embed_text
+from src.config import NEO4J_URI, CHUNK_SIZE, CHUNK_OVERLAP, VECTOR_INDEX_NAME
+from src.logger_config import get_logger
+from src.retrieval.database import get_driver, create_vector_index
 
 logger = get_logger("ingestion")
 

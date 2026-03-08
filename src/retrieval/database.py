@@ -6,8 +6,8 @@ Handles driver lifecycle and cleanup
 import atexit
 from neo4j import GraphDatabase
 from neo4j.exceptions import Neo4jError
-from config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, VECTOR_INDEX_NAME
-from logger_config import get_logger
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, VECTOR_INDEX_NAME
+from src.logger_config import get_logger
 
 logger = get_logger("database")
 
