@@ -7,16 +7,15 @@ class LLMBase(ABC):
     """Base class for language model providers."""
     
     @abstractmethod
-    def generate(self, context: str, question: str) -> str:
+    def generate(self, prompt_text: str) -> str:
         """
-        Generate an answer based on context and question.
+        Send a prompt to the LLM and return the response text.
         
         Args:
-            context: Context text to base answer on
-            question: User's question
+            prompt_text: The prompt to send to the LLM
             
         Returns:
-            Generated answer string
+            Generated response string
             
         Raises:
             LLMError: If generation fails

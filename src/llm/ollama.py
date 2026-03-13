@@ -31,73 +31,36 @@ class OllamaLLM(LLMBase):
         self.timeout = timeout or LLM_TIMEOUT
         self.url = f"{self.base_url}/api/generate"
     
-    def generate(self, context: str, question: str) -> str:
-        """Generate answer using LLM with error handling."""
-        if not context or not context.strip():
-            logger.warning("No context provided for answer generation")
-            return "No relevant information found to answer your question."
-        
-        if not question or not question.strip():
-            logger.error("Empty question provided")
-            return "Please ask a valid question."
-        
-        prompt = f"""
-        You are a history expert.
-
-        Answer the question using ONLY the provided context.
-        If the answer is not in the context, say "I don't know based on the provided text."
-
-        Context:
-        {context}
-
-        Question:
-        {question}
-
-        Answer:
-        """
-
+    def generate(self, prompt_text: str) -> str:
+        """Send a prompt to the LLM and return the response text."""
         for attempt in range(MAX_RETRIES):
             try:
-                logger.debug(f"Generating answer (attempt {attempt + 1}/{MAX_RETRIES})")
+                logger.debug(f"LLM prompt call (attempt {attempt + 1}/{MAX_RETRIES})")
                 response = requests.post(
                     self.url,
                     json={
                         "model": self.model,
-                        "prompt": prompt,
+                        "prompt": prompt_text,
                         "stream": False,
-                        "temperature": self.temperature
+                        "temperature": self.temperature,
                     },
-                    timeout=self.timeout
+                    timeout=self.timeout,
                 )
                 response.raise_for_status()
-                answer = response.json()["response"]
-                logger.info("Answer generated successfully")
-                return answer
-                
+                return response.json()["response"]
+
             except requests.exceptions.Timeout:
-                logger.warning(f"LLM request timeout (attempt {attempt + 1}/{MAX_RETRIES})")
+                logger.warning(f"LLM prompt timeout (attempt {attempt + 1}/{MAX_RETRIES})")
                 if attempt < MAX_RETRIES - 1:
                     time.sleep(RETRY_DELAY)
                 else:
-                    logger.error("Answer generation failed: Service timeout")
-                    return "Unable to generate answer - service timeout. Please try again."
-                    
-            except requests.exceptions.ConnectionError:
-                error_msg = f"Cannot connect to LLM service at {self.base_url}"
-                logger.error(error_msg)
-                return f"Cannot connect to LLM service. Make sure Ollama is running at {self.base_url}"
-                
-            except requests.exceptions.HTTPError as e:
-                logger.error(f"HTTP error from LLM: {e.response.status_code}")
-                return "Error generating answer - service error."
-                
+                    raise LLMError("LLM request timed out") from None
+
+            except requests.exceptions.RequestException as e:
+                raise LLMError(f"LLM request failed: {e}") from e
+
             except KeyError:
-                logger.error("Invalid response from LLM - missing 'response' key")
-                return "Error: Invalid response from language model."
-                
-            except Exception as e:
-                logger.error(f"Unexpected error during answer generation: {str(e)}")
-                return f"Error generating answer: {str(e)}"
+                raise LLMError("Invalid LLM response - missing 'response' key") from None
     
     def get_model_info(self) -> dict:
         """Get information about the LLM."""
@@ -120,8 +83,3 @@ def get_llm() -> OllamaLLM:
     if _llm is None:
         _llm = OllamaLLM()
     return _llm
-
-
-def generate_answer(context: str, question: str) -> str:
-    """Convenience function for generating answers."""
-    return get_llm().generate(context, question)

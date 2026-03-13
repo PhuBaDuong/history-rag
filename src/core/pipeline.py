@@ -1,8 +1,10 @@
 """Core RAG pipeline logic."""
 
-from typing import Tuple
+from typing import Tuple, List
 from src.retrieval.vector_search import retrieve
-from src.llm.ollama import generate_answer
+from src.llm.ollama import get_llm
+from src.utils.exceptions import LLMError
+from src.core.stepback import generate_stepback
 from src.config import MAX_QUESTION_LENGTH, MIN_QUESTION_LENGTH
 from src.logger_config import get_logger
 
@@ -63,23 +65,36 @@ def rag_pipeline(question: str) -> str:
         
         logger.debug(f"Question validated: {question[:50]}...")
         
-        # 2. Retrieve relevant chunks
-        logger.debug(f"Retrieving chunks for question: {question}")
-        results = retrieve(question)
+        # 2. Generate step-back question for broader retrieval
+        print("Generating step-back question for improved retrieval...")
+        stepback_question = generate_stepback(question)
+        logger.debug(f"Step-back question: {stepback_question[:50]}...")
+        
+        # 3. Retrieve chunks for both original and step-back questions
+        original_results = retrieve(question)
+        stepback_results = retrieve(stepback_question)
+        
+        # Merge and deduplicate results, keeping best scores
+        seen_texts = {}
+        for text, score in original_results + stepback_results:
+            if text not in seen_texts or score > seen_texts[text]:
+                seen_texts[text] = score
+        
+        results = sorted(seen_texts.items(), key=lambda x: x[1], reverse=True)
         
         if not results:
             logger.warning(f"No results found for question: {question}")
             return "No relevant information found in the knowledge base."
 
-        # 3. Combine context
+        # 4. Combine context
         context = "\n\n".join(
             [f"[Source {i+1} | score={score:.3f}]\n{text}"
              for i, (text, score) in enumerate(results)]
         )
 
-        logger.info(f"Retrieved {len(results)} chunks, generating answer...")
+        logger.info(f"Retrieved {len(results)} chunks (original={len(original_results)}, step-back={len(stepback_results)}), generating answer...")
 
-        # 4. Generate answer
+        # 5. Generate answer
         answer = generate_answer(context, question)
         logger.info(f"Answer generated successfully")
         return answer
@@ -87,3 +102,43 @@ def rag_pipeline(question: str) -> str:
     except Exception as e:
         logger.error(f"Error in RAG pipeline: {str(e)}")
         return f"Error processing question: {str(e)}"
+
+
+def generate_answer(context: str, question: str) -> str:
+    """Generate an answer from context and question using the LLM."""
+    if not context or not context.strip():
+        logger.warning("No context provided for answer generation")
+        return "No relevant information found to answer your question."
+
+    if not question or not question.strip():
+        logger.error("Empty question provided")
+        return "Please ask a valid question."
+
+    prompt_text = f"""
+    You are a history expert.
+
+    Answer the question using ONLY the provided context. 
+    And do not mention the context in the answer. 
+    If the question is not answerable based on the context, say "I don't know based on the provided context." 
+    Do not try to make up an answer. 
+    Do not use any information that is not in the context. 
+    Do not mention the context in your answer. 
+    Do not say "based on the provided text" or similar phrases. 
+    Just provide a direct answer to the question using only the information in the context."
+
+    Context:
+    {context}
+
+    Question:
+    {question}
+
+    Answer:
+    """
+
+    try:
+        answer = get_llm().generate(prompt_text)
+        logger.info("Answer generated successfully")
+        return answer
+    except LLMError as e:
+        logger.error(f"Answer generation failed: {e}")
+        return f"Error generating answer: {e}"

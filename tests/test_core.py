@@ -45,5 +45,47 @@ class TestCoreValidation(unittest.TestCase):
         self.assertIn("invalid", error.lower())
 
 
+class TestStepBack(unittest.TestCase):
+    """Test suite for step-back prompting."""
+
+    @patch("src.core.stepback.get_llm")
+    def test_generate_stepback_success(self, mock_get_llm):
+        """Test successful step-back question generation."""
+        from src.core.stepback import generate_stepback
+
+        mock_llm = MagicMock()
+        mock_llm.generate.return_value = "What are the major military campaigns of Napoleon?"
+        mock_get_llm.return_value = mock_llm
+
+        result = generate_stepback("When did Napoleon invade Russia?")
+        self.assertEqual(result, "What are the major military campaigns of Napoleon?")
+        mock_llm.generate.assert_called_once()
+
+    @patch("src.core.stepback.get_llm")
+    def test_generate_stepback_strips_quotes(self, mock_get_llm):
+        """Test that surrounding quotes are stripped from LLM response."""
+        from src.core.stepback import generate_stepback
+
+        mock_llm = MagicMock()
+        mock_llm.generate.return_value = '"What is the history of Rome?"'
+        mock_get_llm.return_value = mock_llm
+
+        result = generate_stepback("When was Rome founded?")
+        self.assertEqual(result, "What is the history of Rome?")
+
+    @patch("src.core.stepback.get_llm")
+    def test_generate_stepback_error_returns_original(self, mock_get_llm):
+        """Test that LLM error falls back to original question."""
+        from src.core.stepback import generate_stepback
+        from src.utils.exceptions import LLMError
+
+        mock_llm = MagicMock()
+        mock_llm.generate.side_effect = LLMError("connection failed")
+        mock_get_llm.return_value = mock_llm
+
+        result = generate_stepback("When did Napoleon invade Russia?")
+        self.assertEqual(result, "When did Napoleon invade Russia?")
+
+
 if __name__ == "__main__":
     unittest.main()
